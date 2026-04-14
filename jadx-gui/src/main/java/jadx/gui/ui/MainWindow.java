@@ -1123,7 +1123,7 @@ public class MainWindow extends JFrame {
 
 		// 添加 CloseTab 快捷键
 		JadxGuiAction closeTabAction = new JadxGuiAction(ActionModel.CLOSE_TAB,
-				() -> closeCurrentTab());
+				this::closeCurrentTab);
 
 		JadxGuiAction prefsAction = new JadxGuiAction(ActionModel.PREFS, () -> openSettings());
 		JadxGuiAction exitAction = new JadxGuiAction(ActionModel.EXIT, this::closeWindow);
