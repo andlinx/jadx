@@ -567,6 +567,14 @@ public class MainWindow extends JFrame {
 		BreakpointManager.saveAndExit();
 	}
 
+	private void closeCurrentTab() {
+		ContentPanel selectedContentPanel = tabbedPane.getSelectedContentPanel();
+		if (selectedContentPanel != null) {
+			JNode node = selectedContentPanel.getNode();
+			tabsController.closeTab(node, true);
+		}
+	}
+
 	private void closeAll() {
 		UiUtils.notUiThreadGuard();
 		cancelBackgroundJobs();
@@ -1113,6 +1121,10 @@ public class MainWindow extends JFrame {
 		hexViewerMenu = new JadxMenu(NLS.str("menu.hex_viewer"), shortcutsController);
 		initHexViewMenu();
 
+		// 添加 CloseTab 快捷键
+		JadxGuiAction closeTabAction = new JadxGuiAction(ActionModel.CLOSE_TAB,
+				() -> closeCurrentTab());
+
 		JadxGuiAction prefsAction = new JadxGuiAction(ActionModel.PREFS, () -> openSettings());
 		JadxGuiAction exitAction = new JadxGuiAction(ActionModel.EXIT, this::closeWindow);
 
@@ -1203,6 +1215,9 @@ public class MainWindow extends JFrame {
 		file.add(liveReloadMenuItem);
 		renameMappings.addMenuActions(file);
 		file.addSeparator();
+		file.add(closeTabAction);
+		file.addSeparator();
+		file.add(exitAction);
 		file.add(exportAction);
 		file.addSeparator();
 		file.add(recentProjects);

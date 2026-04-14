@@ -59,6 +59,10 @@ public enum ActionModel {
 			Shortcut.none()),
 	PREVIEW_TAB(MENU_TOOLBAR, "menu.enable_preview_tab", "menu.enable_preview_tab", "ui/editorPreview",
 			Shortcut.none()),
+
+	CLOSE_TAB(MENU_TOOLBAR, "menu.close_tab", "menu.close_tab_desc", "ui/close",
+			Shortcut.keyboard(KeyEvent.VK_F4, UiUtils.ctrlButton())),
+
 	DECOMPILE_ALL(MENU_TOOLBAR, "menu.decompile_all", "menu.decompile_all", "ui/runAll",
 			Shortcut.none()),
 	RESET_CACHE(MENU_TOOLBAR, "menu.reset_cache", "menu.reset_cache", "ui/reset",
