@@ -24,6 +24,7 @@ public class ResTableHelper {
 	public static List<JResource> buildTree(JResource resTableRes, ResContainer resTable) {
 		ResTableHelper resTableHelper = new ResTableHelper(resTableRes);
 		resTableHelper.process(resTable);
+		JResource.mergeMiddleDirs(resTableHelper.roots);
 		return resTableHelper.roots;
 	}
 

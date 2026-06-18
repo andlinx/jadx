@@ -21,7 +21,6 @@ import jadx.api.metadata.annotations.VarNode;
 import jadx.api.plugins.input.data.ICodeReader;
 import jadx.api.plugins.input.data.IDebugInfo;
 import jadx.api.plugins.input.data.IMethodData;
-import jadx.api.plugins.input.data.IMethodRef;
 import jadx.api.plugins.input.data.attributes.JadxAttrType;
 import jadx.api.plugins.input.data.attributes.types.ExceptionsAttr;
 import jadx.api.utils.CodeUtils;
@@ -87,7 +86,7 @@ public class MethodNode extends NotificationAttrNode implements IMethodDetails, 
 	// Methods that use this method
 	private List<MethodNode> useIn = Collections.emptyList();
 	// Unresolved methods that use this method
-	private List<IMethodRef> unresolvedUsed = Collections.emptyList();
+	private List<MethodInfo> unresolvedUsed = Collections.emptyList();
 	// Methods that this method uses
 	private Set<MethodNode> methodsUsed = new HashSet<>();
 	// True if this method contains a self call
@@ -131,6 +130,7 @@ public class MethodNode extends NotificationAttrNode implements IMethodDetails, 
 		sVars = Collections.emptyList();
 		instructions = null;
 		blocks = null;
+		blocksMaxCId = 0;
 		enterBlock = null;
 		exitBlock = null;
 		region = null;
@@ -713,10 +713,9 @@ public class MethodNode extends NotificationAttrNode implements IMethodDetails, 
 		return codeReader;
 	}
 
-	// Cannot modify through get, use setUseIn
 	@Override
 	public List<MethodNode> getUseIn() {
-		return Collections.unmodifiableList(useIn);
+		return useIn;
 	}
 
 	// Do not modify passed list after setting
@@ -740,15 +739,15 @@ public class MethodNode extends NotificationAttrNode implements IMethodDetails, 
 	}
 
 	public Set<MethodNode> getUsed() {
-		this.removeInavlidMethodsUsed();
+		this.removeInvalidMethodsUsed();
 		return methodsUsed;
 	}
 
-	public List<IMethodRef> getUnresolvedUsed() {
+	public List<MethodInfo> getUnresolvedUsed() {
 		return unresolvedUsed;
 	}
 
-	public void setUnresolvedUsed(List<IMethodRef> unresolvedUsed) {
+	public void setUnresolvedUsed(List<MethodInfo> unresolvedUsed) {
 		this.unresolvedUsed = unresolvedUsed;
 	}
 
@@ -762,12 +761,8 @@ public class MethodNode extends NotificationAttrNode implements IMethodDetails, 
 
 	// Remove any methods from the list of used methods (calees) if this method (caller) has been
 	// removed from the calee's list of callers
-	private void removeInavlidMethodsUsed() {
-		for (MethodNode methodUsed : new ArrayList<>(methodsUsed)) {
-			if (!methodUsed.getUseIn().contains(this)) {
-				methodsUsed.remove(methodUsed);
-			}
-		}
+	private void removeInvalidMethodsUsed() {
+		methodsUsed.removeIf(methodUsed -> !methodUsed.getUseIn().contains(this));
 	}
 
 	public JavaMethod getJavaNode() {

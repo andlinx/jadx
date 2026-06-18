@@ -1,5 +1,6 @@
 package jadx.core.utils;
 
+import java.awt.Color;
 import java.io.File;
 import java.util.Collections;
 import java.util.HashSet;
@@ -7,17 +8,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
-import java.util.stream.Collectors;
+
+import org.jetbrains.annotations.Nullable;
 
 import jadx.api.ICodeWriter;
 import jadx.api.JavaMethod;
 import jadx.api.impl.SimpleCodeWriter;
-import jadx.api.plugins.input.data.IMethodRef;
 import jadx.core.codegen.MethodGen;
 import jadx.core.dex.attributes.AFlag;
 import jadx.core.dex.attributes.AType;
 import jadx.core.dex.attributes.IAttributeNode;
 import jadx.core.dex.info.ClassInfo;
+import jadx.core.dex.info.MethodInfo;
 import jadx.core.dex.instructions.IfNode;
 import jadx.core.dex.instructions.InsnType;
 import jadx.core.dex.instructions.args.ArgType;
@@ -89,8 +91,7 @@ public class DotGraphUtils {
 				.resolve(mth.getParentClass().getClassInfo().getAliasFullPath() + "_graphs")
 				.resolve(fileName)
 				.toFile();
-		file = FileUtils.cutFileName(file);
-		return file;
+		return FileUtils.cutFileName(file);
 	}
 
 	public void dumpToFile(MethodNode mth) {
@@ -100,16 +101,14 @@ public class DotGraphUtils {
 
 	public void dumpToFile(MethodNode mth, File dir) {
 		String graph = dumpToString(mth);
-
 		if (graph == null) {
 			return;
 		}
-
 		File file = getFullFile(mth, dir);
 		SaveCode.save(graph, file);
 	}
 
-	public String dumpToString(MethodNode mth) {
+	public @Nullable String dumpToString(MethodNode mth) {
 		dot.startLine("digraph \"CFG for");
 		dot.add(escape(mth.getMethodInfo().getFullId()));
 		dot.add("\" {");
@@ -144,9 +143,7 @@ public class DotGraphUtils {
 					// region will already process all it's containing blocks.
 					continue;
 				}
-
 				processBlock(mth, block);
-
 			}
 		}
 
@@ -431,18 +428,18 @@ public class DotGraphUtils {
 		}
 	}
 
-	private String escape(Object obj) {
+	public static String escape(Object obj) {
 		if (obj == null) {
 			return "null";
 		}
 		return escape(obj.toString());
 	}
 
-	private String escape(String string) {
+	public static String escape(String string) {
 		return escape(string, NLQR);
 	}
 
-	private String escape(String string, String newline) {
+	public static String escape(String string, String newline) {
 		return string
 				.replace("\\", "") // TODO replace \"
 				.replace("/", "\\/")
@@ -480,19 +477,13 @@ public class DotGraphUtils {
 		return methodNode.getAlias();
 	}
 
-	public static String unresolvedMethodFormatName(IMethodRef methodRef, boolean longName) {
-		String name = methodRef.getName();
+	public static String unresolvedMethodFormatName(MethodInfo mthInfo, boolean longName) {
+		String name = mthInfo.getName();
 		if (longName) {
-			String className = methodRef.getParentClassType();
-			className = Utils.cleanObjectName(className);
-
-			String returnName = methodRef.getReturnType();
-			returnName = Utils.smaliNameToJavaName(returnName);
-
-			List<String> argTypes = methodRef.getArgTypes();
-			argTypes = argTypes.stream().map(c -> Utils.smaliNameToJavaName(c)).collect(Collectors.toList());
-
-			return String.format("%s.%s(%s):%s", className, name, Utils.listToString(argTypes), returnName);
+			String className = mthInfo.getDeclClass().getFullName();
+			String returnName = mthInfo.getReturnType().toString();
+			String argStr = Utils.listToString(mthInfo.getArgumentsTypes(), ArgType::toString);
+			return String.format("%s.%s(%s):%s", className, name, argStr, returnName);
 		}
 		return name;
 	}
@@ -510,5 +501,13 @@ public class DotGraphUtils {
 			}
 		}
 		return arg.toString();
+	}
+
+	public static String formatColor(Color color) {
+		return String.format("\"#%02x%02x%02x\"", color.getRed(), color.getGreen(), color.getBlue());
+	}
+
+	public static String toDotNodeName(String fullName) {
+		return fullName.replace("<", "\\<").replace(">", "\\>");
 	}
 }

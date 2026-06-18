@@ -397,13 +397,12 @@ public class MethodGen {
 				for (IDexTreeVisitor visitor : Jadx.getFallbackPassesList()) {
 					DepthTraversal.visit(visitor, mth);
 				}
-				errors.forEach(err -> mth.addAttr(AType.JADX_ERROR, err));
 			} catch (Exception e) {
 				LOG.error("Error reload instructions in fallback mode:", e);
 				code.startLine("// Can't load method instructions: " + e.getMessage());
 				return;
 			} finally {
-				errors.forEach(err -> mth.addAttr(AType.JADX_ERROR, err));
+				mth.addAttr(AType.JADX_ERROR, errors);
 			}
 		}
 		InsnNode[] insnArr = mth.getInstructions();

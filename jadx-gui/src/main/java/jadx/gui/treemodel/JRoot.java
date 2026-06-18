@@ -73,6 +73,7 @@ public class JRoot extends JNode {
 			JResource leaf = new JResource(rf, rf.getDeobfName(), parts[count - 1], JResType.FILE);
 			curRf.addSubNode(leaf);
 		}
+		JResource.mergeMiddleDirs(root);
 		root.sortSubNodes();
 		root.update();
 		return root;

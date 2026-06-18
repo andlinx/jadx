@@ -4,6 +4,7 @@ import java.awt.Point;
 import java.awt.event.InputEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -15,6 +16,7 @@ import javax.swing.event.PopupMenuEvent;
 import org.fife.ui.rsyntaxtextarea.RSyntaxDocument;
 import org.fife.ui.rsyntaxtextarea.Token;
 import org.fife.ui.rsyntaxtextarea.TokenTypes;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,31 +36,29 @@ import jadx.gui.treemodel.JLoadableNode;
 import jadx.gui.treemodel.JNode;
 import jadx.gui.treemodel.JResource;
 import jadx.gui.ui.MainWindow;
+import jadx.gui.ui.action.ActionModel;
 import jadx.gui.ui.action.CommentSearchAction;
+import jadx.gui.ui.action.CopyReferenceAction;
 import jadx.gui.ui.action.FindUsageAction;
 import jadx.gui.ui.action.FridaAction;
 import jadx.gui.ui.action.GoToDeclarationAction;
-import jadx.gui.ui.action.JNodeAction;
 import jadx.gui.ui.action.JsonPrettifyAction;
 import jadx.gui.ui.action.RenameAction;
 import jadx.gui.ui.action.ViewCallGraphAction;
 import jadx.gui.ui.action.ViewClassInheritanceGraphAction;
 import jadx.gui.ui.action.ViewClassMethodGraphAction;
 import jadx.gui.ui.action.ViewControlFlowGraphAction;
-import jadx.gui.ui.action.ViewRawControlFlowGraphAction;
-import jadx.gui.ui.action.ViewRegionControlFlowGraphAction;
 import jadx.gui.ui.action.XposedAction;
 import jadx.gui.ui.codearea.mode.JCodeMode;
-import jadx.gui.ui.codearea.sync.CodePanelSyncee;
-import jadx.gui.ui.codearea.sync.CodePanelSyncer;
-import jadx.gui.ui.codearea.sync.CodePanelSyncerAbstractFactory;
+import jadx.gui.ui.codearea.sync.CodeAreaSyncee;
+import jadx.gui.ui.codearea.sync.CodeAreaSyncer;
+import jadx.gui.ui.codearea.sync.CodeAreaSyncerAbstractFactory;
 import jadx.gui.ui.codearea.sync.JavaSyncer;
 import jadx.gui.ui.panel.ContentPanel;
 import jadx.gui.utils.CaretPositionFix;
 import jadx.gui.utils.DefaultPopupMenuListener;
 import jadx.gui.utils.JNodeCache;
 import jadx.gui.utils.JumpPosition;
-import jadx.gui.utils.NLS;
 import jadx.gui.utils.UiUtils;
 import jadx.gui.utils.shortcut.ShortcutsController;
 
@@ -66,7 +66,7 @@ import jadx.gui.utils.shortcut.ShortcutsController;
  * The {@link AbstractCodeArea} implementation used for displaying Java code and text based
  * resources (e.g. AndroidManifest.xml)
  */
-public final class CodeArea extends AbstractCodeArea implements CodePanelSyncerAbstractFactory, CodePanelSyncee {
+public final class CodeArea extends AbstractCodeArea implements CodeAreaSyncerAbstractFactory, CodeAreaSyncee {
 	private static final Logger LOG = LoggerFactory.getLogger(CodeArea.class);
 
 	private static final long serialVersionUID = 6312736869579635796L;
@@ -191,6 +191,7 @@ public final class CodeArea extends AbstractCodeArea implements CodePanelSyncerA
 		popup.add(new CommentAction(this));
 		popup.add(new CommentSearchAction(this));
 		popup.add(new RenameAction(this));
+		popup.add(new CopyReferenceAction(this));
 		popup.addSeparator();
 		popup.add(new FridaAction(this));
 		popup.add(new XposedAction(this));
@@ -198,11 +199,7 @@ public final class CodeArea extends AbstractCodeArea implements CodePanelSyncerA
 		popup.add(new ViewClassInheritanceGraphAction(this));
 		popup.add(new ViewClassMethodGraphAction(this));
 		popup.add(new ViewCallGraphAction(this));
-		popup.addSubmenu(new JNodeAction[] {
-				new ViewControlFlowGraphAction(this),
-				new ViewRawControlFlowGraphAction(this),
-				new ViewRegionControlFlowGraphAction(this),
-		}, NLS.str("popup.cfg_submenu"));
+		popup.add(new ViewControlFlowGraphAction(ActionModel.VIEW_CONTROL_FLOW_GRAPH, this));
 		popup.addSeparator();
 		popup.add(new ConvertNumberAction(this));
 
@@ -333,7 +330,7 @@ public final class CodeArea extends AbstractCodeArea implements CodePanelSyncerA
 	/**
 	 * Search referenced java node by offset in {@code jCls} code
 	 */
-	public JavaNode getJavaNodeAtOffset(int offset) {
+	public @Nullable JavaNode getJavaNodeAtOffset(int offset) {
 		if (offset == -1) {
 			return null;
 		}
@@ -345,7 +342,7 @@ public final class CodeArea extends AbstractCodeArea implements CodePanelSyncerA
 		return null;
 	}
 
-	public JavaNode getClosestJavaNode(int offset) {
+	public @Nullable JavaNode getClosestJavaNode(int offset) {
 		if (offset == -1) {
 			return null;
 		}
@@ -357,7 +354,7 @@ public final class CodeArea extends AbstractCodeArea implements CodePanelSyncerA
 		}
 	}
 
-	public JavaNode getEnclosingJavaNode(int offset) {
+	public @Nullable JavaNode getEnclosingJavaNode(int offset) {
 		if (offset == -1) {
 			return null;
 		}
@@ -457,20 +454,19 @@ public final class CodeArea extends AbstractCodeArea implements CodePanelSyncerA
 	}
 
 	@Override
-	public CodePanelSyncer createCodePanelSyncer() {
+	public CodeAreaSyncer createCodeAreaSyncer() {
 		return new JavaSyncer(this);
 	}
 
 	@Override
-	public boolean sync(CodePanelSyncer codePanelSyncer) {
-		return codePanelSyncer.syncTo(this);
+	public boolean sync(CodeAreaSyncer codeAreaSyncer) {
+		return codeAreaSyncer.syncTo(this);
 	}
 
-	@Nullable
-	public ICodeMetadata getCodeMetadata() {
+	public @Nullable ICodeMetadata getCodeMetadata() {
 		ICodeInfo codeInfo = getCodeInfo();
 		if (!codeInfo.hasMetadata()) {
-			LOG.warn("No code info metadata for {}", codeInfo.toString());
+			LOG.warn("No code info metadata for {}", codeInfo);
 			return null;
 		}
 		return codeInfo.getCodeMetadata();
@@ -485,16 +481,18 @@ public final class CodeArea extends AbstractCodeArea implements CodePanelSyncerA
 	public Map<Integer, Integer> getLineMappings() {
 		ICodeInfo codeInfo = getCodeInfo();
 		if (!codeInfo.hasMetadata()) {
-			LOG.debug("No code info metadata for {}", codeInfo.toString());
-			return Map.of();
+			LOG.debug("No code info metadata for {}", codeInfo);
+			return Collections.emptyMap();
 		}
 		Map<Integer, Integer> lineMapping = codeInfo.getCodeMetadata().getLineMapping();
 		if (lineMapping.isEmpty()) {
-			LOG.debug("Line mappings are empty for {}", codeInfo.toString());
-			return Map.of();
+			LOG.debug("Line mappings are empty for {}", codeInfo);
+			return Collections.emptyMap();
 		}
 		return lineMapping;
 	}
+
+	private Map<Integer, Integer> cachedUniqueLineMappings;
 
 	/**
 	 * Returns the same as {@link #getLineMappings()} but only if each value (dex debug line number)
@@ -502,17 +500,25 @@ public final class CodeArea extends AbstractCodeArea implements CodePanelSyncerA
 	 * If a value appears more than once then it suggests that methods might share dex debug line
 	 * numbers.
 	 * If this is the case then the line mapping cannot be used for code sync correlation.
-	 *
-	 * @return the line mapping
 	 */
 	public Map<Integer, Integer> getFunctionUniqueLineMappings() {
-		final var lineMappings = getLineMappings();
-		final boolean isAnyRepeated =
-				lineMappings.values().stream().collect(Collectors.groupingBy(Function.identity(), Collectors.counting())).values().stream()
-						.filter(v -> v > 1).findAny().isPresent();
+		Map<Integer, Integer> mappings = cachedUniqueLineMappings;
+		if (mappings == null) {
+			mappings = calcUniqueLineMappings();
+			cachedUniqueLineMappings = mappings;
+		}
+		return mappings;
+	}
+
+	private @NotNull Map<Integer, Integer> calcUniqueLineMappings() {
+		Map<Integer, Integer> lineMappings = getLineMappings();
+		boolean isAnyRepeated = lineMappings.values().stream()
+				.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+				.values().stream()
+				.anyMatch(v -> v > 1);
 		if (isAnyRepeated) {
 			LOG.debug("Dex debug line mappings are not unique");
-			return Map.of();
+			return Collections.emptyMap();
 		}
 		return lineMappings;
 	}
